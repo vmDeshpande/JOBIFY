@@ -1,0 +1,17 @@
+{
+  "name": "jobify",
+  "version": "1.0.0",
+  "description": "",
+  "main": "public/server/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "The Developers",
+  "license": "ISC",
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "express-session": "^1.18.0",
+    "mongoose": "^8.1.1"
+  }
+}
