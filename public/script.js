@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     </div>
                                 </div>
                         `;
-                        jobListContainer.appendChild(jobCard);
+            jobListContainer.appendChild(jobCard);
           });
         });
       })
@@ -41,7 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const storedJobDetails = sessionStorage.getItem("jobDetails");
 
     if (storedJobDetails) {
-      const { job_type, title, company, location, salary } = JSON.parse(storedJobDetails);
+      const { job_type, title, company, location, salary } =
+        JSON.parse(storedJobDetails);
 
       jobDetailsContainer.innerHTML = `
     <div class="card text-center">
@@ -54,55 +55,72 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
     </div>
 `;
-
-
     }
   }
   function renderCompanyPosts(posts) {
-    if (!Array.isArray(posts)) {
-        return '<p class="lead">No company posts available.</p>';
+    if (!Array.isArray(posts) || posts.length === 0) {
+      return '<p class="lead">No company posts available.</p>';
     }
 
-    return posts.map(
+    return posts
+      .map(
         (post) => `
             <div class="card mb-3">
                 <div class="card-body">
                     <h3 class="card-title">Job Title: ${post.title}</h3>
                     <p class="card-text">Location: ${post.location}</p>
                     <p class="card-text">Salary: ${post.salary}</p>
+                    <p class="card-text">Contact: ${post.contact}</p>
+                    <p class="card-text">Job Type: ${post.job_type}</p>
                 </div>
             </div>
         `
-    ).join('');
-}
+      )
+      .join("");
+  }
 
-function renderApplications(applications) {
-    return applications.map(application => `
+  function renderApplications(applications) {
+    if (!Array.isArray(applications) || applications.length === 0) {
+      return '<p class="lead">No applications available.</p>';
+    }
+    console.log(applications)
+    return applications
+      .map(
+        (application, index) => `
         <div class="card mb-3">
             <div class="card-body">
                 <h3 class="card-title" id="applicantName">${application.fullName}</h3>
                 <p class="card-text" id="jobTitle">Job Title: ${application.jobTitle}</p>
                 <p class="card-text">Email: ${application.email}</p>
                 <p class="card-text">Experience: ${application.experience}</p>
-                <p class="card-text">Phone Number: ${application.phone_number}</p>
-                <button class="btn btn-success me-2" onclick="handleApplicationApproval('${application.fullName}', true, '${application.jobTitle}')">
+                <p class="card-text">Phone Number: ${application.contact}</p>
+                <p class="card-text">Expected Salary: ${application.expectedSalary}</p>
+                <button class="btn btn-success me-2 companyDownloadButton" data-index="${index}">
+                    <i class="bi bi-download"></i> Download Resume
+                </button><br><br>
+                <button id="selectButton" class="btn btn-success me-2" onclick="handleApplicationApproval('${application.fullName}', 'select', '${application.jobTitle}')">
                     <i class="bi bi-check"></i> Select
                 </button>
-                <button class="btn btn-danger" onclick="handleApplicationApproval('${application.fullName}', false, '${application.jobTitle}')">
+                <button id="hireButton" class="btn btn-success me-2 hidden" onclick="handleApplicationApproval('${application.fullName}', 'hire', '${application.jobTitle}')">
+                    <i class="bi bi-check"></i> Hire
+                </button>
+                <button class="btn btn-danger" onclick="handleApplicationApproval('${application.fullName}', 'reject', '${application.jobTitle}')">
                     <i class="bi bi-x"></i> Reject
                 </button>
             </div>
         </div>
-    `).join('');
-}
+    `
+      )
+      .join("");
+  }
 
-const panelContent = document.getElementById("panelContent");
+  const panelContent = document.getElementById("panelContent");
 
-if (panelContent) {
+  if (panelContent) {
     fetch("/panel")
-        .then((response) => response.json())
-        .then((data) => {
-            panelContent.innerHTML = `
+      .then((response) => response.json())
+      .then((data) => {
+        panelContent.innerHTML = `
                 <div class="container">
                     <div class="row">
                         <div class="col-md-6">
@@ -116,81 +134,231 @@ if (panelContent) {
                     </div>
                 </div>
             `;
-        })
-        .catch((error) => console.error("Error fetching panel data:", error));
-}
-
-
-function renderUserApplications(applications) {
-  if (!applications || applications.length === 0) {
-      return '<p class="lead">No applications found.</p>';
+      })
+      .catch((error) => console.error("Error fetching panel data:", error));
   }
 
-  const applicationList = applications.map(application => `
+  function renderUserApplications(applications) {
+    if (!applications || applications.length === 0) {
+      return '<p class="lead">No applications found.</p>';
+    }
+
+    const applicationList = applications
+      .map(
+        (application, index) => `
       <div class="card mb-3">
           <div class="card-body">
               <h5 class="card-title">Job Title: ${application.jobTitle}</h5>
               <p class="card-text">Company Name: ${application.companyName}</p>
-              <p class="card-text">Status: ${getStatusLabel(application.approved)}</p>
-              ${application.approved === 'true' ? `<p class="card-text">Contact: ${application.contact}</p>` : ''}
-              <p class="card-text">Date: ${new Date(application.date).toLocaleString()}</p>
+              <p class="card-text">Expected Salary: ${
+                application.expectedSalary
+              }</p>
+              <p class="card-text">Status: ${getStatusLabel(
+                application.approved
+              )}</p>
+              <button class="btn btn-success me-2 userDownloadButton" data-index="${index}">
+                    <i class="bi bi-download"></i> Download Resume
+                </button><br>
+              ${
+                application.approved === "true"
+                  ? `<p class="card-text">Contact: ${application.contact}</p>`
+                  : ""
+              }
+              ${
+                application.approved === "true"
+                  ? `<p class="card-text">Contact this number for further assistance.</p>`
+                  : ""
+              }
+              <p class="card-text">Date: ${new Date(
+                application.date
+              ).toLocaleString()}</p>
           </div>
       </div>
-  `).join('');
+  `
+      )
+      .join("");
 
-  return applicationList;
-}
-
-function getStatusLabel(approved) {
-  if (approved === 'true') {
-      return '<span class="badge bg-success">Hired</span>';
-  } else if (approved === 'false') {
-      return '<span class="badge bg-danger">Rejected</span>';
-  } else {
-      return '<span class="badge bg-warning text-dark">Pending</span>';
+    return applicationList;
   }
-}
 
-const userPanelContent = document.getElementById("userpanelContent");
+  document.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("userDownloadButton")) {
+      const index = event.target.getAttribute("data-index");
+      
 
-if (userPanelContent) {
-  fetch("/user-panel")
-      .then(response => response.json())
-      .then(data => {
-          if (data.userData && Array.isArray(data.userData.applications)) {
-              userPanelContent.innerHTML = `
+      try {
+        const response1 = await fetch("/user-panel");
+        const data = await response1.json();
+        const userName = data.applications[index].fullName;
+        const application = data.applications[index];
+        const resumeId = application.resume;
+
+        const response = await fetch(`/resume?resumeId=${resumeId}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        const base64Data = responseData.fileData;
+        const blobFileName = responseData.fileName;
+
+        const blob = base64toBlob(base64Data);
+
+        const blobUrl = URL.createObjectURL(blob);
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = blobUrl;
+        downloadLink.download = blobFileName || `resume_${index + 1}.pdf`;
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+
+        document.body.removeChild(downloadLink);
+      } catch (error) {
+        console.error("Error fetching or downloading resume:", error);
+      }
+    }
+  });
+  document.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("companyDownloadButton")) {
+      const index = event.target.getAttribute("data-index");
+      
+
+      try {
+        const response1 = await fetch("/panel");
+        const data = await response1.json();
+        const userName = data.applications[index].fullName;
+        const application = data.applications[index];
+        const resumeId = application.resume;
+
+        const response = await fetch(`/resume?resumeId=${resumeId}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const responseData = await response.json();
+        const base64Data = responseData.fileData;
+        const blobFileName = responseData.fileName;
+
+        const blob = base64toBlob(base64Data);
+
+        const blobUrl = URL.createObjectURL(blob);
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = blobUrl;
+        downloadLink.download = blobFileName || `resume_${index + 1}.pdf`;
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+
+        document.body.removeChild(downloadLink);
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Downloaded resume successfully!',
+      });
+    } catch (error) {
+      console.error("Error fetching or downloading resume:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed!',
+        text: 'Error fetching or downloading resume!',
+    });
+      }
+    }
+  });
+
+  function getStatusLabel(approved) {
+    if (approved === "selected") {
+      return '<span class="badge bg-success">Called for Interview</span>';
+    } else if (approved === "reject") {
+      return '<span class="badge bg-danger">Rejected</span>';
+    } else if(approved === "hire") {
+      return '<span class="badge bg-success">Hired</span>'
+    } else {
+      return '<span class="badge bg-warning text-dark">Pending</span>';
+    }
+  }
+ 
+  const userPanelContent = document.getElementById("userpanelContent");
+
+  if (userPanelContent) {
+    fetch("/user-panel")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.userData && Array.isArray(data.userData.applications)) {
+          userPanelContent.innerHTML = `
                   <div class="container">
                       <div class="row">
                           <div class="col-md-6">
                               <h2 class="mb-4">User Data</h2>
                               <p>Username: ${data.userData.username}</p>
+                              <p>Email: ${data.userData.email}</p>
                               <!-- Add other user-related data here -->
                           </div>
                           <div class="col-md-6">
                               <h2 class="mb-4">Applications</h2>
-                              ${renderUserApplications(data.userData.applications)}
+                              ${renderUserApplications(
+                                data.userData.applications
+                              )}
                           </div>
                       </div>
                   </div>
               `;
-          } else {
-              userPanelContent.innerHTML = "<p class='lead'>No user data found.</p>";
-          }
+        } else {
+          userPanelContent.innerHTML =
+            "<p class='lead'>No user data found.</p>";
+        }
       })
-      .catch(error => console.error("Error fetching user panel data:", error));
-}
+      .catch((error) =>
+        console.error("Error fetching user panel data:", error)
+      );
+  }
 
   toggleAuthLinks();
 });
 
+function base64toBlob(base64Data) {
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: "application/octet-stream" });
+}
+
 function register() {
   const userType = document.getElementById("userType").value;
-
-  const registrationData = {
-    username: document.getElementById("username").value,
-    companyName: document.getElementById("companyName").value.toLowerCase(),
-    password: document.getElementById("password").value,
-  };
+  let registrationData;
+  if (userType === "company") {
+    registrationData = {
+      username: document.getElementById("companyUsername").value,
+      companyName: document.getElementById("companyName").value.toLowerCase(),
+      contact: document.getElementById("companypnumber").value,
+      email: document.getElementById("companyEmail").value,
+      website: document.getElementById("companyWebsite").value,
+      password: document.getElementById("companyPassword").value,
+    };
+  } else {
+    registrationData = {
+      username: document.getElementById("userUsername").value,
+      contact: document.getElementById("userpnumber").value,
+      email: document.getElementById("userEmail").value,
+      dob: document.getElementById("dob").value,
+      country: document.getElementById("country").value,
+      state: document.getElementById("state").value,
+      city: document.getElementById("city").value,
+      last_qualification: document.getElementById("lastQualification").value,
+      idProof: document.getElementById("idProof").value,
+      aadhar_number: document.getElementById("aadharNumber").value,
+      password: document.getElementById("userPassword").value,
+    };
+  }
 
   const registrationRoute = `/register/${userType}`;
 
@@ -208,19 +376,35 @@ function register() {
         data.message === "User registration successful" ||
         data.message === "Company registration successful"
       ) {
-        window.location.href = "/login.html";
-        alert(`${userType} registration successful`);
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `${userType} registration successful`,
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.href = "/login.html";
+          }
+        });
       } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: `${data.message}`,
+        })
       }
     })
     .catch((error) => {
       console.error("Error:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: `${error.message}`,
+    });
     });
 }
 
 function login() {
-  console.log("Login button clicked");
-
   const userType = document.getElementById("userType").value;
 
   const loginData = {
@@ -245,13 +429,31 @@ function login() {
         data.message === "User login successful" ||
         data.message === "Company login successful"
       ) {
-        window.location.href = "/";
-        alert(`${userType} login successful`);
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `${userType} login successful`,
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.href = '/';
+          }
+        });
       } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: `${data.message}`
+        })
       }
     })
     .catch((error) => {
       console.error("Error:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: `${error.messsage}`,
+    });
     });
 }
 
@@ -325,7 +527,6 @@ async function createPost() {
       const jobType = document.getElementById("jobType").value;
       const jobTitle = document.getElementById("jobTitle").value;
       const location = document.getElementById("location").value;
-      const contact = document.getElementById("contact").value;
       const salary = document.getElementById("salary").value;
 
       const postRoute = "/post";
@@ -335,23 +536,41 @@ async function createPost() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ jobType, jobTitle, companyName, location, contact, salary }),
+        body: JSON.stringify({
+          jobType,
+          jobTitle,
+          companyName,
+          location,
+          salary,
+        }),
       })
-      .then((response) => response.json())
-      .then((data) => {
-      console.log(data);
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data);
 
-      if (
-        data.message === "Job post created successfully" ||
-        data.message === "Job post updated successfully"
-      ) {
-        window.location.href = "/index.html";
-        alert(`Job post created successfully`);
-      } else {
-      }
-    })
+          if (
+            data.message === "Job post created successfully" ||
+            data.message === "Job post updated successfully"
+          ) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Success!',
+              text: 'Job post created successfully!',
+              confirmButtonText: 'OK',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                window.location.href = "/index.html";
+              }
+            });           
+          }
+        });
     } else {
       console.error("Company name is undefined in the response");
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed!',
+        text: 'Company name is undefined in the response!',
+    });
     }
   } catch (error) {
     console.error("Error:", error);
@@ -366,10 +585,22 @@ async function showJobDetails(job_type, title, company, location, salary) {
     );
     window.location.href = "/apply.html";
   } else if (await isCompany()) {
-    alert("Company owners cannont apply for jobs.");
+    Swal.fire({
+      icon: 'info',
+      title: 'Info!',
+      text: `Company owners cannont apply for jobs`,
+  });
   } else {
-    alert("Please log in to submit the application.");
-    window.location.href = "/login.html";
+    Swal.fire({
+      icon: 'warning',
+      title: 'Warning!',
+      text: `Please log in to submit the application.`,
+      confirmButtonText: 'OK',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      window.location.href = '/login.html';
+    }
+  });
     return;
   }
 }
@@ -382,62 +613,96 @@ window.onclick = function (event) {
 };
 
 async function submitApplication() {
-    const panelResponse = await fetch("/user-panel");
-    const data = await panelResponse.json();
+  const panelResponse = await fetch("/user-panel");
+  const data = await panelResponse.json();
 
-    const userName = data.username;
-  const formData = {
-    fullName: userName,
-    email: document.getElementById("email").value,
-    companyName: document.getElementById("companyName").textContent,
-    jobTitle: document.getElementById("jobTitle").textContent,
-    experience: document.getElementById("experience").value,
-    phone_number: document.getElementById("pnumber").value,
-    job_type: document.getElementById("jobType").textContent
-  };
+  const userName = data.username;
+  const email = data.email;
+  const contact = data.contact;
+
+  const formData = new FormData();
+  formData.append("fullName", userName);
+  formData.append("email", email);
+  formData.append("companyName", document.getElementById("companyName").textContent);
+  formData.append("jobTitle", document.getElementById("jobTitle").textContent);
+  formData.append("experience", document.getElementById("experience").value);
+  formData.append("expectedSalary", document.getElementById("expectedSalary").value);
+  formData.append("job_type", document.getElementById("jobType").textContent);
+  formData.append("contact", contact);
+
+  const resumeInput = document.getElementById("resume");
+  formData.append("resume", resumeInput.files[0]);
+
   fetch("/apply-for-job", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(formData),
+    body: formData,
   })
     .then((response) => response.json())
     .then((data) => {
       console.log(data);
-      if (
-        data.message === "Application submitted successfully"
-      ) {
-        window.location.href = "/index.html";
-        alert(`Application submitted successfully`);
+      if (data.message === "Application submitted successfully") {
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `Application submitted successfully.`,
+          confirmButtonText: 'OK',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.href = "/index.html";
+          }
+        });        
       } else {
       }
     })
     .catch((error) => {
       console.error("Error:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: `${error.message}.`,
+    });
     });
 }
 
-function handleApplicationApproval(applicantName, isHired, jobTitle) {
-    // Make a fetch request to your server endpoint to update the application status
-    fetch('/approve-application', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ applicantName, isHired, jobTitle }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log(data);
-        if (
-          data.message === "Application status updated successfully"
-        ) {
-          alert(`Application status updated successfully`);
-        } else {
+function handleApplicationApproval(applicantName, status, jobTitle) {
+  const statusMap = {
+    select: 'select',
+    reject: 'reject',
+    hire: 'hire',
+  };
+
+  fetch("/approve-application", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ applicantName, status, jobTitle }),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log(data);
+      if (data.message === "Application status updated successfully") {
+        const statusText = statusMap[status] || 'Updated';
+        Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: `Application status ${statusText} successfully.`,
+        });
+        if(status === 'select'){
+          const hireButton = document.getElementById('hireButton');
+      const selectButton = document.getElementById('selectButton');
+      hireButton.classList.remove('hidden');
+      selectButton.classList.add('hidden');
         }
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: `Application status ${statusText} Failed.`,
+        });
+      }
     })
-    .catch(error => {
-        console.error('Error:', error);
+    .catch((error) => {
+      console.error("Error:", error);
     });
 }

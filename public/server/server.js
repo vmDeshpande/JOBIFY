@@ -5,9 +5,16 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const crypto = require('crypto');
 const secretKey = crypto.randomBytes(64).toString('hex');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+const router = express.Router();
+const resumeRouter = require('./resumeRouter');
+const app = express();
+app.use(resumeRouter);
+
 console.log(secretKey)
 
-const app = express();
 app.use(session({
     secret: secretKey,
     resave: false,
@@ -39,11 +46,20 @@ app.get('/', async (req, res) => {
 });
 
 app.post('/register/user', async (req, res) => {
-    const { username, password } = req.body;
+    const { username, contact, email, dob, country, state, city, last_qualification, idProof, aadhar_number, password } = req.body;
 
     try {
         const newUser = new User({
             username,
+            contact,
+            email,
+            dob,
+            country,
+            state,
+            city,
+            last_qualification,
+            idProof,
+            aadhar_number,
             password,
             applications: [],
         });
@@ -58,10 +74,17 @@ app.post('/register/user', async (req, res) => {
 
 
 app.post('/register/company', async (req, res) => {
-    const { username, password, companyName } = req.body;
+    const { username, companyName, contact, email, website, password } = req.body;
 
     try {
-        const newCompany = new Company({ username, password, companyName});
+        const newCompany = new Company({ 
+            username, 
+            companyName,
+            contact,
+            email,
+            website,
+            password,
+        });
         await newCompany.save();
         res.json({ message: 'Company registration successful' });
     } catch (error) {
@@ -102,7 +125,6 @@ app.post('/login/company', async (req, res) => {
         if (company) {
             req.session.company = company;
 
-            // Store the company name in the session
             req.session.companyName = company.companyName.toLowerCase();
 
             res.json({ message: 'Company login successful' });
@@ -129,20 +151,21 @@ app.post('/post', async (req, res) => {
         return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { jobType, jobTitle, companyName, location, contact, salary } = req.body;
+    const { jobType, jobTitle, companyName, location, salary } = req.body;
 
     try {
         const existingPost = await CompanyPost.findOne({ companyName: companyName });
+        const contactN = `+91 ${req.session.company.contact}`
 
         if (existingPost) {
-            existingPost.jobs.push({ title: jobTitle, location, contact, salary, job_type: jobType });
+            existingPost.jobs.push({ title: jobTitle, location, contact: contactN, salary, job_type: jobType });
             await existingPost.save();
             res.json({ message: 'Job post updated successfully' });
         } else {
             const newPost = new CompanyPost({
                 companyName: companyName,
                 companyId: req.session.company._id,
-                jobs: [{ title: jobTitle, location, contact, salary, job_type: jobType }],
+                jobs: [{ title: jobTitle, location, contact: contactN, salary, job_type: jobType }],
             });
 
             await newPost.save();
@@ -163,18 +186,41 @@ app.get('/get-job-listings', async (req, res) => {
     }
 });
 
-app.post('/apply-for-job', async (req, res) => {
-    const { email, companyName, jobTitle, experience, phone_number, job_type } = req.body;
+app.post('/apply-for-job', upload.single('resume'), async (req, res) => {
+    const { companyName, jobTitle, experience, job_type, expectedSalary } = req.body;
 
-    const userName = req.session.user.username
+    const userName = req.session.user.username;
+    const email = req.session.user.email;
+    const contact = req.session.user.contact;
+    
     try {
+        const resumeFile = req.file;
+
+        if (!resumeFile) {
+            return res.status(400).json({ message: 'Resume file is required' });
+        }
+        const Resume = require('../models/resume');
+
+        const fileExtension = path.extname(resumeFile.originalname);
+
+        const newFileName = `${userName}${fileExtension}`;
+
+        const newResume = new Resume({
+            fileName: newFileName,
+            data: resumeFile.buffer,
+            contentType: resumeFile.mimetype,
+        });
+
+        await newResume.save();
+
         const newApplication = {
             fullName: userName,
             email: email,
             experience: experience,
-            phone_number: phone_number,
+            contact: contact,
+            expectedSalary: expectedSalary,
+            resume: newResume._id,
         };
-
         const updatedCompanyPost = await CompanyPost.findOneAndUpdate(
             { "companyName": companyName, "jobs.title": jobTitle },
             { $push: { "jobs.$.applications": newApplication } },
@@ -184,25 +230,29 @@ app.post('/apply-for-job', async (req, res) => {
         if (!updatedCompanyPost) {
             return res.status(404).json({ message: 'No matching document found for update' });
         }
+
         const contactN = await CompanyPost.findOne(
             { "companyName": companyName, "jobs.title": jobTitle }
         );
-        
+
         const contactValue = contactN.jobs[0].contact;
-        
-        const application = {
+
+        const userApplication = {
             jobTitle: jobTitle,
             companyName: companyName,
             fullName: userName,
             email: email,
             contact: contactValue,
             experience: experience,
-            phone_number: phone_number,
-            job_type: job_type
-        }
+            contact: contact,
+            job_type: job_type,
+            expectedSalary: expectedSalary,
+            resume: newResume._id,
+        };
+
         const updatedUser = await User.findOneAndUpdate(
             { username: userName },
-            { $push: { applications: application } },
+            { $push: { applications: userApplication } },
             { new: true }
         );
 
@@ -216,7 +266,6 @@ app.post('/apply-for-job', async (req, res) => {
         res.status(500).json({ message: 'Error submitting application', error: error.message });
     }
 });
-
 
 app.get('/get-applications', async (req, res) => {
     const companyName = req.query.companyName;
@@ -276,11 +325,11 @@ app.get('/user-panel', async (req, res) => {
         }
 
         const user = req.session.user.username;
+        const email = req.session.user.email;
+        const contact = req.session.user.contact;
 
-        // Fetch user data
-        const userData = await User.findOne({username: user});
+        const userData = await User.findOne({username: user, email: email, contact: contact});
 
-        // Extract applications array from user data
         const applications = userData.applications || [];
 
         res.json({ userData, applications });
@@ -291,33 +340,43 @@ app.get('/user-panel', async (req, res) => {
 });
 
 app.post('/approve-application', async (req, res) => {
-    const { applicantName, isHired, jobTitle } = req.body;
+    const { applicantName, status, jobTitle } = req.body;
+    console.log(status)
 
     try {
-        // Assuming you have a model named 'Application' for your applications
-        const updatedApplication = await User.findOneAndUpdate(
-            { username: applicantName, 'applications.jobTitle': jobTitle },
-            { $set: { 'applications.$.approved': isHired ? 'true' : 'false' } },
-            { new: true }
-        );
+        let approvedStatus;
 
-        if (!updatedApplication) {
-            return res.status(404).json({ message: 'No matching document found for update' });
+        if (status === 'select') {
+            approvedStatus = 'selected';
+        } else {
+            approvedStatus = status;
         }
-        if (!isHired) {
+
+        if (status === 'reject') {
             await CompanyPost.findOneAndUpdate(
                 { 'jobs.applications.fullName': applicantName, 'jobs.title': jobTitle },
                 { $pull: { 'jobs.$.applications': { fullName: applicantName } } }
             );
-        } else {
-            // Remove the entire job entry from CompanyPost if it's marked as hired
+        } else if (status === 'hire') {
+            console.log("it is hire")
             await CompanyPost.findOneAndUpdate(
                 { 'jobs.title': jobTitle },
                 { $pull: { jobs: { title: jobTitle } } }
             );
+            await User.findOneAndUpdate(
+                { username: applicantName, 'applications.jobTitle': jobTitle },
+                { $set: { 'applications.$.status': status, 'applications.$.approved': approvedStatus } },
+                { new: true }
+            );
+        } else if(status === 'select') {
+             await User.findOneAndUpdate(
+                { username: applicantName, 'applications.jobTitle': jobTitle },
+                { $set: { 'applications.$.status': status, 'applications.$.approved': approvedStatus } },
+                { new: true }
+            );
         }
 
-        res.json({ message: 'Application status updated successfully', updatedApplication });
+        res.json({ message: 'Application status updated successfully' });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ message: 'Error updating application status', error: error.message });

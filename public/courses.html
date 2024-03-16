@@ -82,29 +82,20 @@
         <!-- 404 Start -->
         <div class="container-xxl py-5">
             <h1 class="text-center mb-5 wow fadeInUp" data-wow-delay="0.1s">Courses</h1>
-            <section class="row justify-content-center">
-                <div class="col-md-6 mb-4">
-                    <div class="embed-responsive embed-responsive-16by9">
-                        <iframe class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/Ck49AD5RkuU?si=qh-LTIrKg6lbUdPu" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="embed-responsive embed-responsive-16by9">
-                        <iframe class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/56Y4DudgO18?si=OKg2ytWC3P-T1nam" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="embed-responsive embed-responsive-16by9">
-                        <iframe class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/FDXql4y8mkg?si=nu34IGHdKUkLO_i1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-4">
-                    <div class="embed-responsive embed-responsive-16by9">
-                        <iframe class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/vS604G48Eu0?si=R9_KwGAdi8Cc-3v1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                    </div>
-                </div>
-            </section>
-        </div>
+            <div class="dropdown mb-3">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    Select a Category
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li><a class="dropdown-item" onclick="showVideos('category1')">Communicatio and soft skills</a></li>
+                    <li><a class="dropdown-item" onclick="showVideos('category2')">Confidence</a></li>
+                    <li><a class="dropdown-item" onclick="showVideos('category3')">English speaking</a></li>
+                </ul>
+            </div>
+            <div id="videoContainer" class="row justify-content-center">
+                <!-- Videos will be dynamically added here -->
+            </div>
+        </div>        
         
         <!-- 404 End -->
 
@@ -197,8 +188,63 @@
                 })
                 .catch(error => console.error('Error:', error));
         });
+
+        function showVideos(category) {
+    const videoContainer = document.getElementById("videoContainer");
+    videoContainer.innerHTML = ""; // Clear previous videos
+
+     // Define category names
+     const categoryNames = {
+        category1: "Communication and Soft Skills",
+        category2: "Confidence",
+        category3: "English Speaking"
+    };
+
+    // Create a heading element to display the category name
+    const categoryHeading = document.createElement("h2");
+    categoryHeading.textContent = `Selected Category: ${categoryNames[category]}`;
+    videoContainer.appendChild(categoryHeading);
+
+    // Define videos for each category
+    const videos = {
+        category1: [
+            { id: "A3DaUT1ixpg?si=YaTp0E9XrNSa-YuH", title: "Video 1" },
+            { id: "fLI2WKS3DKI?si=NUqzSSi_cmGNcoeG", title: "Video 2" },
+            { id: "BaMWo9f1J4w?si=UHSLrgv9AyoZQ5v3", title: "Video 3" },
+            { id: "t24lHcMKits?si=tmS5CVP-wFARA6_X", title: "Video 4" },
+            { id: "SELrJAcO5PA?si=-6KPSkcdbBj9ZNw8", title: "Video 5" },
+        ],
+        category2: [
+            { id: "3gqQevdM7xM?si=l_mtJSYZsFZ-dSSo", title: "Video 6" },
+            { id: "GqjEKlffQec?si=sX2FMv0g9oKLHhFd", title: "Video 7" },
+        ],
+        category3: [
+            { id: "vLq8hC6PBrE?si=uKyQF0Yk9Z16WvxZ", title: "Video 8" },
+            { id: "CseoK-7sb4g?si=Fv8OdkxwVqptSmZs", title: "Video 9" },
+            { id: "0hMYKEkCuq0?si=TuslFmsx8aW2ceOC", title: "Video 10" },
+            { id: "tPQ5p2YfCUw?si=NPdIXPfuZCMffiQ4", title: "Video 11" },
+            { id: "tSF4XwCUs-k?si=61DINskh4gtyibow", title: "Video 12" },
+        ]
+    };
+
+    // Retrieve videos for selected category
+    const selectedVideos = videos[category];
+
+    // Create and append video elements to the container
+    selectedVideos.forEach(video => {
+        const videoElement = document.createElement("div");
+        videoElement.classList.add("col-md-6", "mb-4");
+        videoElement.innerHTML = `
+            <div class="embed-responsive embed-responsive-16by9">
+                <iframe class="embed-responsive-item" width="560" height="315" src="https://www.youtube.com/embed/${video.id}?rel=0" title="${video.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>`;
+        videoContainer.appendChild(videoElement);
+    });
+}
+
     </script>
     <!-- Template Javascript -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/main.js"></script>
     <script src="script.js"></script>
 </body>

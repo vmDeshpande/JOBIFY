@@ -4,7 +4,12 @@ const applicationSchema = new mongoose.Schema({
     fullName: String,
     email: String,
     experience: String,
-    phone_number: String
+    contact: String,
+    expectedSalary: String,
+    resume: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Resume',
+    },
 });
 
 const jobSchema = new mongoose.Schema({
